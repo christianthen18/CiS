@@ -97,16 +97,17 @@ class PosController extends Controller
             );
 
 
-            $sales = Sales::create(
-                [
-                    'employes_id' => $user->employees->first()->id,
-                    'payment_methods_id' => $request->payment_method_id,
-                    'customers_id' => $request->customer_id,
-                    'total_price' => $request->final_total,
-                    'shipping_cost' => 0,
-                    'discount' => $request->discount,
-                ]
-            );
+            $sales = Sales::create([
+                'employes_id' => $user->employees->first()->id,
+                'payment_methods_id' => $request->payment_method_id,
+                'customers_id' => $request->customer_id,
+                'total_price' => $request->final_total,
+                'shipping_cost' => 0,
+                'discount' => $request->discount,
+                'cogs_method' => 'fifo', // Add this required field
+                'noNota' => 'INV' . str_pad(Sales::count() + 1, 4, '0', STR_PAD_LEFT), // Generate invoice number
+                'date' => Carbon::now()
+            ]);
 
             foreach ($request->cart as $key => $value) {
                 # code...
@@ -146,6 +147,7 @@ class PosController extends Controller
             ], 201);
         } catch (\Throwable $th) {
             DB::rollBack();
+            \Log::error($th); // Log the full exception for debugging
             return response()->json([
                 'status' => false,
                 'message' => $th->getMessage(),
